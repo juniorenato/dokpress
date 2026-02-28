@@ -27,11 +27,12 @@ else
     echo "AVISO: Nenhum arquivo de configuração encontrado. Usando configuração padrão do nginx."
 fi
 
-
 # Garantir permissões de execução em wp-content
 if [ -d /var/www/public/wp-content ]; then
   echo "Ajustando permissões em /var/www/public/wp-content"
-  chmod -R +x /var/www/public/wp-content
+  chmod +x /var/www/public/wp-content
+  chmod -R +x /var/www/public/wp-content/plugins
+  chmod -R +x /var/www/public/wp-content/themes
 else
   echo "Diretório /var/www/public/wp-content não encontrado, pulando chmod."
 fi

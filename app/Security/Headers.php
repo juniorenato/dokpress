@@ -61,7 +61,6 @@ class Headers
             );
         }
 
-
         if(Environment::get('ENABLE_REFERRER_POLICY', true)) {
             $response->headers->set(
                 'Referrer-Policy',

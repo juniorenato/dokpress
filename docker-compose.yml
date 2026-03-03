@@ -13,7 +13,7 @@ services:
       - ./.docker/nginx/log:/var/log/nginx
       - ./.docker/nginx/docker-entrypoint.sh:/docker-entrypoint.sh:ro
       - ./:/var/www
-      - /var/projects/${APP_NAME}/uploads:/var/www/public/wp-content/uploads
+      - ${WP_UPLOADS_DIR}:/var/www/public/wp-content/uploads
     environment:
       - APP_DOMAIN=${APP_DOMAIN}
     env_file:
@@ -37,7 +37,7 @@ services:
       - ./.docker/php/php.ini:/usr/local/etc/php/conf.d/custom.ini
       - ./.docker/php/log:/var/log/php/
       - ./:/var/www
-      - /var/projects/${APP_NAME}/uploads:/var/www/public/wp-content/uploads
+      - ${WP_UPLOADS_DIR}:/var/www/public/wp-content/uploads
     depends_on:
       - mariadb
     restart: unless-stopped
@@ -45,7 +45,7 @@ services:
       - app-network
 
   mariadb:
-    image: mariadb:10.11
+    image: mariadb:11.8
     environment:
       MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
       MARIADB_DATABASE: ${MARIADB_DATABASE}
@@ -97,10 +97,10 @@ services:
       - app-network
     environment:
       - APP_ENV=${APP_ENV:-production}
-      - MYSQL_HOST=mariadb
-      - MYSQL_DATABASE=${MYSQL_DATABASE}
-      - MYSQL_USER=${MYSQL_USER}
-      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MARIADB_HOST=mariadb
+      - MARIADB_DATABASE=${MARIADB_DATABASE}
+      - MARIADB_USER=${MARIADB_USER}
+      - MARIADB_PASSWORD=${MARIADB_PASSWORD}
     env_file:
       - .env
 

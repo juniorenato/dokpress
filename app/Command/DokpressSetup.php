@@ -8,8 +8,19 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
+/**
+ * Runs the project setup commands in order.
+ *
+ * Invoked by Composer `post-install-cmd`. Copies configuration files and
+ * deploys WordPress. Salt refresh and theme build stay as separate commands.
+ */
 class DokpressSetup extends Command
 {
+    /**
+     * Registers the `dokpress:setup` command.
+     *
+     * @return void
+     */
     protected function configure(): void
     {
         $this
@@ -17,6 +28,16 @@ class DokpressSetup extends Command
             ->setDescription('Run project setup commands');
     }
 
+    /**
+     * Copies configuration files, then deploys WordPress.
+     *
+     * Stops at the first child command that does not return success.
+     *
+     * @param InputInterface  $input  Console input. This command accepts no arguments.
+     * @param OutputInterface $output Console output shared with each child command.
+     *
+     * @return int `Command::SUCCESS` when every step succeeds, otherwise `Command::FAILURE`.
+     */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);

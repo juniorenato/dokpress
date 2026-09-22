@@ -2,18 +2,24 @@
 
 namespace App\Service;
 
+/**
+ * Reads environment variables and classifies the runtime.
+ *
+ * Boolean-looking strings from the environment are cast before they are
+ * returned. `dev()` and `development()` are aliases of {@see self::local()}.
+ */
 class Environment
 {
     /**
-     * -------------------------------------------------------------------------
-     * Get an environment variable
-     * -------------------------------------------------------------------------
+     * Returns the value of an environment variable.
      *
-     * Missing or empty values use $default. Boolean-looking strings become bool.
+     * A missing or empty value falls back to `$default`. The strings `true`
+     * and `(true)` become `true`; `false` and `(false)` become `false`.
      *
-     * @param string $key
-     * @param mixed $default
-     * @return mixed
+     * @param string $key     Environment variable name.
+     * @param mixed  $default Value used when the variable is missing or empty.
+     *
+     * @return mixed Resolved value, or `$default`.
      */
     public static function get(string $key, mixed $default = ''): mixed
     {
@@ -39,11 +45,11 @@ class Environment
     }
 
     /**
-     * -------------------------------------------------------------------------
-     * Check if is production
-     * -------------------------------------------------------------------------
+     * Reports whether the application runs in production.
      *
-     * @return boolean
+     * Accepts `APP_ENV=production` and `APP_ENV=prod`.
+     *
+     * @return bool `true` when `APP_ENV` is production.
      */
     public static function production(): bool
     {
@@ -53,11 +59,9 @@ class Environment
     }
 
     /**
-     * -------------------------------------------------------------------------
-     * Check if is staging
-     * -------------------------------------------------------------------------
+     * Reports whether the application runs in staging.
      *
-     * @return boolean
+     * @return bool `true` when `APP_ENV` is `staging`.
      */
     public static function staging(): bool
     {
@@ -65,11 +69,11 @@ class Environment
     }
 
     /**
-     * -------------------------------------------------------------------------
-     * Check if is development or local
-     * -------------------------------------------------------------------------
+     * Reports whether the application runs in a local or development environment.
      *
-     * @return boolean
+     * Accepts `APP_ENV` values `loc`, `local`, `dev` and `development`.
+     *
+     * @return bool `true` when `APP_ENV` is local or development.
      */
     public static function local(): bool
     {
@@ -81,11 +85,11 @@ class Environment
     }
 
     /**
-     * -------------------------------------------------------------------------
-     * Check if is development or local
-     * -------------------------------------------------------------------------
+     * Reports whether the application runs in a local or development environment.
      *
-     * @return boolean
+     * Alias of {@see self::local()}.
+     *
+     * @return bool `true` when {@see self::local()} is `true`.
      */
     public static function dev(): bool
     {
@@ -93,11 +97,11 @@ class Environment
     }
 
     /**
-     * -------------------------------------------------------------------------
-     * Check if is development or local
-     * -------------------------------------------------------------------------
+     * Reports whether the application runs in a local or development environment.
      *
-     * @return boolean
+     * Alias of {@see self::local()}.
+     *
+     * @return bool `true` when {@see self::local()} is `true`.
      */
     public static function development(): bool
     {

@@ -1,5 +1,12 @@
 <?php
 
+/**
+ * Console entry point for Dokpress commands.
+ *
+ * Defines `WD_BASE_PATH`, loads `app/bootstrap.php`, and registers every
+ * class in `app/Command` whose file name matches the class name.
+ */
+
 use Symfony\Component\Console\Application;
 
 if (!defined('WD_BASE_PATH')) {
@@ -10,7 +17,6 @@ require __DIR__ . '/app/bootstrap.php';
 
 $application = new Application();
 
-// Register commands
 $commandNamespace = 'App\\Command\\';
 $commandDir = __DIR__ . '/app/Command';
 

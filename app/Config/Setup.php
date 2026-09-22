@@ -2,8 +2,19 @@
 
 namespace App\Config;
 
+/**
+ * Default application settings that are not read from the environment.
+ */
 class Setup
 {
+    /**
+     * Builds the default Content-Security-Policy header value.
+     *
+     * Used by {@see \App\Security\Headers} when `CONTENT_SECURITY_POLICY` is empty
+     * and `ENABLE_CONTENT_SECURITY_POLICY` is enabled.
+     *
+     * @return string Policy directives separated by semicolons.
+     */
     public static function CONTENT_SECURITY_POLICY(): string
     {
         $data = [

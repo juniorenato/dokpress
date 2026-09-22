@@ -1,11 +1,28 @@
 <?php
 
+/**
+ * Checks {@see \App\Service\Environment} without PHPUnit.
+ *
+ * Run with `php tests/EnvironmentTest.php`. A failed assertion throws
+ * and stops the script.
+ */
+
 namespace App\Tests;
 
 use App\Service\Environment;
 
 require_once __DIR__ . '/../app/Service/Environment.php';
 
+/**
+ * Stops the script when an assertion fails.
+ *
+ * @param bool   $condition Condition that must be true.
+ * @param string $message   Text printed on success and included in the failure.
+ *
+ * @return void
+ *
+ * @throws \RuntimeException When `$condition` is false.
+ */
 function assert_true(bool $condition, string $message): void
 {
     if (!$condition) {

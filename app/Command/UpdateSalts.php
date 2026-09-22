@@ -6,16 +6,34 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
+/**
+ * Writes fresh WordPress salts into the project `.env` file.
+ *
+ * Salts are fetched from the WordPress.org secret-key API. Existing keys are
+ * replaced in place; missing keys are appended. This command is not part of
+ * `dokpress:setup`.
+ */
 class UpdateSalts extends Command
 {
+    /**
+     * Absolute path to the project `.env` file.
+     */
     private string $envFile;
 
+    /**
+     * Resolves the `.env` path from `WD_BASE_PATH`.
+     */
     public function __construct()
     {
         parent::__construct();
         $this->envFile = WD_BASE_PATH . '/.env';
     }
 
+    /**
+     * Registers the `dokpress:update-salts` command.
+     *
+     * @return void
+     */
     protected function configure(): void
     {
         $this
@@ -23,6 +41,14 @@ class UpdateSalts extends Command
             ->setDescription('Update WordPress SALT keys in .env file');
     }
 
+    /**
+     * Fetches salts and writes them to `.env`.
+     *
+     * @param InputInterface  $input  Console input. This command accepts no arguments.
+     * @param OutputInterface $output Console output.
+     *
+     * @return int `Command::SUCCESS` when `.env` is updated, otherwise `Command::FAILURE`.
+     */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $salts = @file_get_contents('https://api.wordpress.org/secret-key/1.1/salt/');

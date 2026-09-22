@@ -8,16 +8,44 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Filesystem\Filesystem;
 
+/**
+ * Copies Dokpress configuration into the WordPress tree.
+ *
+ * `.env.example` is copied to `.env` only when `.env` is missing.
+ * `app/wp.php` is always copied to `public/wp-core/wp-config.php`.
+ * The Redis drop-in is copied when the redis-cache plugin is installed.
+ */
 class CopyConfigFiles extends Command
 {
+    /**
+     * Files copied only when the destination does not exist.
+     *
+     * Keys are source paths and values are destination paths, both relative
+     * to `WD_BASE_PATH`.
+     *
+     * @var array<string, string>
+     */
     protected array $once = [
         '/.env.example' => '/.env',
     ];
 
+    /**
+     * Files copied on every run, overwriting the destination.
+     *
+     * Keys are source paths and values are destination paths, both relative
+     * to `WD_BASE_PATH`.
+     *
+     * @var array<string, string>
+     */
     protected array $always = [
         '/app/wp.php' => '/public/wp-core/wp-config.php',
     ];
 
+    /**
+     * Registers the `dokpress:copy-config-files` command.
+     *
+     * @return void
+     */
     protected function configure(): void
     {
         $this
@@ -25,6 +53,14 @@ class CopyConfigFiles extends Command
             ->setDescription('Copy wp-config.php to public/wp-core/');
     }
 
+    /**
+     * Copies the configured files and the Redis object-cache drop-in.
+     *
+     * @param InputInterface  $input  Console input. This command accepts no arguments.
+     * @param OutputInterface $output Console output.
+     *
+     * @return int `Command::SUCCESS` when every required copy succeeds, otherwise `Command::FAILURE`.
+     */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);

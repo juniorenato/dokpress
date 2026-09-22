@@ -6,13 +6,28 @@ use App\Config\Setup;
 use App\Service\Environment;
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * Sends optional HTTP security headers on public WordPress responses.
+ *
+ * Each header is emitted only when its `ENABLE_*` environment flag is true.
+ * Admin, AJAX, login and the custom login query variable are skipped.
+ * Construct this class from a must-use plugin; nothing in the template does it.
+ */
 class Headers
 {
+    /**
+     * Registers the header callback on WordPress `send_headers`.
+     */
     public function __construct()
     {
         add_action('send_headers', [$this, 'applySecurityHeaders']);
     }
 
+    /**
+     * Writes the enabled security headers to the current response.
+     *
+     * @return void
+     */
     public function applySecurityHeaders()
     {
         if (is_admin()
@@ -115,7 +130,6 @@ class Headers
             );
         }
 
-        // Set headers in the PHP response
         foreach ($response->headers->allPreserveCase() as $name => $values) {
             foreach ($values as $value) {
                 header("{$name}: {$value}", false);

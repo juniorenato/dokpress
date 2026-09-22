@@ -9,36 +9,30 @@ class Environment
      * Get an environment variable
      * -------------------------------------------------------------------------
      *
+     * Missing or empty values use $default. Boolean-looking strings become bool.
+     *
      * @param string $key
-     * @param string $default
+     * @param mixed $default
      * @return mixed
      */
-    public static function get(string $key, string $default = ''): mixed
+    public static function get(string $key, mixed $default = ''): mixed
     {
         $value = getenv($key);
 
-        // Se não encontrou com getenv, tenta $_ENV e $_SERVER
         if ($value === false) {
             $value = $_ENV[$key] ?? $_SERVER[$key] ?? null;
         }
 
-        // Se ainda é false ou null, usa o default
-        if ($value === false || $value === null) {
+        if ($value === false || $value === null || $value === '') {
             return $default;
         }
 
-        // Converter strings booleanas
         if ($value === 'true' || $value === '(true)') {
             return true;
         }
 
         if ($value === 'false' || $value === '(false)') {
             return false;
-        }
-
-        // Converter strings vazias em null
-        if ($value === '') {
-            return null;
         }
 
         return $value;

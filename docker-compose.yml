@@ -23,6 +23,11 @@ services:
     restart: unless-stopped
     networks:
       - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/health || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
     logging:
       driver: "json-file"
       options:
@@ -33,16 +38,28 @@ services:
     build:
       context: ./.docker/php
       dockerfile: Dockerfile
+    entrypoint: ["/docker-entrypoint.sh"]
+    command: ["php-fpm"]
     volumes:
       - ./.docker/php/php.ini:/usr/local/etc/php/conf.d/custom.ini
       - ./.docker/php/log:/var/log/php/
+      - ./.docker/php/docker-entrypoint.sh:/docker-entrypoint.sh:ro
+      - ./.docker/msmtp/configure.php:/usr/local/bin/configure-msmtp.php:ro
       - ./:/var/www
       - ${WP_UPLOADS_DIR}:/var/www/public/wp-content/uploads
+    env_file:
+      - .env
     depends_on:
       - mariadb
+      - redis
     restart: unless-stopped
     networks:
       - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep php-fpm || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
 
   mariadb:
     image: mariadb:11.8
@@ -88,6 +105,8 @@ services:
     volumes:
       - ./.docker/php/php.ini:/usr/local/etc/php/conf.d/custom.ini
       - ./.docker/php/log:/var/log/php/
+      - ./.docker/php-cli/docker-entrypoint.sh:/docker-entrypoint.sh:ro
+      - ./.docker/msmtp/configure.php:/usr/local/bin/configure-msmtp.php:ro
       - ./:/var/www
     depends_on:
       - mariadb
@@ -95,14 +114,73 @@ services:
     restart: unless-stopped
     networks:
       - app-network
+    user: "0:0"
     environment:
       - APP_ENV=${APP_ENV:-production}
       - MARIADB_HOST=mariadb
       - MARIADB_DATABASE=${MARIADB_DATABASE}
       - MARIADB_USER=${MARIADB_USER}
       - MARIADB_PASSWORD=${MARIADB_PASSWORD}
+      - HOME=/home/user
+      - COMPOSER_HOME=/home/user/.composer
+      - CLI_BOOTSTRAP=1
+      - GIT_CONFIG_COUNT=1
+      - GIT_CONFIG_KEY_0=safe.directory
+      - GIT_CONFIG_VALUE_0=/var/www
     env_file:
       - .env
+
+  wp-cron:
+    build:
+      context: ./.docker/php-cli
+      dockerfile: Dockerfile
+    volumes:
+      - ./.docker/php/php.ini:/usr/local/etc/php/conf.d/custom.ini
+      - ./.docker/php/log:/var/log/php/
+      - ./.docker/php-cli/docker-entrypoint.sh:/docker-entrypoint.sh:ro
+      - ./.docker/msmtp/configure.php:/usr/local/bin/configure-msmtp.php:ro
+      - ./:/var/www
+    depends_on:
+      - mariadb
+      - redis
+    restart: unless-stopped
+    networks:
+      - app-network
+    user: "0:0"
+    environment:
+      - HOME=/home/user
+      - GIT_CONFIG_COUNT=1
+      - GIT_CONFIG_KEY_0=safe.directory
+      - GIT_CONFIG_VALUE_0=/var/www
+    env_file:
+      - .env
+    command:
+      - sh
+      - -c
+      - while true; do wp cron event run --due-now --path=public/wp-core --allow-root || true; sleep 60; done
+
+  adminer:
+    image: adminer:latest
+    profiles: ["dev"]
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mariadb
+    restart: unless-stopped
+    networks:
+      - app-network
+    environment:
+      ADMINER_DEFAULT_SERVER: mariadb
+
+  mailpit:
+    image: axllent/mailpit:latest
+    profiles: ["dev"]
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+    restart: unless-stopped
+    networks:
+      - app-network
 
 volumes:
   db_data:

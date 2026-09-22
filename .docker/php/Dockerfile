@@ -1,4 +1,4 @@
-FROM php:8.3-fpm-alpine
+FROM php:8.4-fpm-alpine
 
 # Start as root
 USER root
@@ -18,6 +18,7 @@ RUN apk add --no-cache \
         oniguruma \
         libxslt \
         msmtp \
+        ca-certificates \
     && apk add --no-cache --virtual .build-deps \
         $PHPIZE_DEPS \
         imagemagick-dev \
@@ -51,11 +52,12 @@ RUN apk add --no-cache \
         xml \
         xsl \
         zip \
-    # Install PECL extensions
-    && pecl install redis imagick \
+    # Install PECL extensions (PHP 8.4)
+    && pecl install redis-6.3.0 imagick-3.8.0 \
     && docker-php-ext-enable redis imagick \
     # Cleanup
     && apk del .build-deps \
+    && ln -sf /usr/bin/msmtp /usr/sbin/sendmail \
     && rm -rf /tmp/* /var/cache/apk/*
 
 # Configure user permissions for runtime

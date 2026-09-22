@@ -18,25 +18,38 @@ class SafeLogin
 
         $safeLogin = Environment::get('WP_LOGIN_URL', '');
 
-        if($safeLogin) {
-            $this->safeLogin = $safeLogin;
+        if ($safeLogin) {
+            $this->safeLogin = ltrim((string) $safeLogin, '/');
 
-            add_action('init', [$this, 'LoginUrl']);
-            add_action('login_url', [$this, 'changeLoginUrl']);
+            add_filter('query_vars', [$this, 'registerQueryVar']);
+            add_action('init', [$this, 'loginUrl']);
+            add_filter('login_url', [$this, 'changeLoginUrl']);
+            add_action('init', [$this, 'adminLoginRedirect']);
+            add_action('template_redirect', [$this, 'templateRedirect']);
+            add_action('init', [$this, 'loadCustomLogin'], 1);
         }
+    }
 
-        add_action('init', [$this, 'adminLoginRedirect']);
-        add_action('template_redirect', [$this, 'templateRedirect']);
+    public function registerQueryVar(array $vars): array
+    {
+        $vars[] = 'dokpress_login';
+        return $vars;
     }
 
     public function loginUrl(): void
     {
-        add_rewrite_rule('^'. $this->safeLogin .'/?$', 'core/wp-login.php');
+        add_rewrite_rule(
+            '^' . preg_quote($this->safeLogin, '#') . '/?$',
+            'index.php?dokpress_login=1',
+            'top'
+        );
 
         if ($this->request->isMethod('GET')
-            && str_contains($this->requestUri, 'wp-login.php')
+            && strpos($this->requestUri, 'wp-login.php') !== false
             && !is_user_logged_in()
-        ) { $this->set404(); }
+        ) {
+            $this->set404();
+        }
     }
 
     public function changeLoginUrl(): string
@@ -44,16 +57,33 @@ class SafeLogin
         return home_url($this->safeLogin);
     }
 
+    public function loadCustomLogin(): void
+    {
+        $path = trim((string) parse_url($this->requestUri, PHP_URL_PATH), '/');
+        $isCustomPath = $path === $this->safeLogin;
+        $isQueryVar = isset($GLOBALS['wp_query']) && $GLOBALS['wp_query'] instanceof \WP_Query
+            && (int) get_query_var('dokpress_login') === 1;
+
+        if (!$isCustomPath && !$isQueryVar) {
+            return;
+        }
+
+        require ABSPATH . 'wp-login.php';
+        exit;
+    }
+
     public function adminLoginRedirect(): void
     {
-        if(str_contains($this->requestUri, 'wp-admin')
+        if (str_contains($this->requestUri, 'wp-admin')
             && !is_user_logged_in()
-        ) { $this->set404(); }
+        ) {
+            $this->set404();
+        }
     }
 
     public function templateRedirect(): void
     {
-        if(preg_match('#^/admin/?$#', $this->requestUri)) {
+        if (preg_match('#^/admin/?$#', $this->requestUri)) {
             $this->set404();
         }
     }

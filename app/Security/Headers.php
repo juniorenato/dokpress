@@ -10,18 +10,22 @@ class Headers
 {
     public function __construct()
     {
-        if(!is_admin()
-            && !wp_doing_ajax()
-            && !did_action('login_init')
-            && !get_query_var('dokpress_login')
-        ) { add_action('send_headers', [$this, 'applySecurityHeaders']); }
+        add_action('send_headers', [$this, 'applySecurityHeaders']);
     }
 
     public function applySecurityHeaders()
     {
+        if (is_admin()
+            || wp_doing_ajax()
+            || did_action('login_init')
+            || get_query_var('dokpress_login')
+        ) {
+            return;
+        }
+
         $response = new Response();
 
-        if(Environment::get('ENABLE_STRICT_TRANSPORT_SECURITY', true)) {
+        if(Environment::production() && Environment::get('ENABLE_STRICT_TRANSPORT_SECURITY', true)) {
             $response->headers->set(
                 'Strict-Transport-Security',
                 Environment::get(
@@ -81,7 +85,7 @@ class Headers
             );
         }
 
-        if(Environment::get('ENABLE_CROSS_ORIGIN_EMBEDDER_POLICY', true)) {
+        if(Environment::get('ENABLE_CROSS_ORIGIN_EMBEDDER_POLICY', false)) {
             $response->headers->set(
                 'Cross-Origin-Embedder-Policy',
                 Environment::get(

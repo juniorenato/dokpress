@@ -6,6 +6,8 @@ public/wp-core/**
 
 # WordPress Config
 public/wp-config.php
+public/wp-core/wp-config.php
+public/wp-content/object-cache.php
 public/.htaccess
 
 # WordPress Content
@@ -48,6 +50,7 @@ public/wp-content/plugins/*/vendor/
 
 # Build artifacts
 public/wp-content/themes/*/dist/
+public/wp-content/themes/*/assets/dist/
 *.min.js
 *.min.css
 *.map

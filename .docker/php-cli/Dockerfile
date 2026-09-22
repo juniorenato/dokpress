@@ -1,4 +1,6 @@
-FROM php:8.3-cli-alpine
+FROM node:24-alpine AS node
+
+FROM php:8.4-cli-alpine
 
 # Start as root
 USER root
@@ -23,6 +25,7 @@ RUN apk add --no-cache \
     oniguruma \
     libxslt \
     msmtp \
+    ca-certificates \
 && apk add --no-cache --virtual .build-deps \
     $PHPIZE_DEPS \
     imagemagick-dev \
@@ -56,11 +59,12 @@ RUN apk add --no-cache \
     xml \
     xsl \
     zip \
-# Install PECL extensions
-&& pecl install redis imagick \
+# Install PECL extensions (PHP 8.4)
+&& pecl install redis-6.3.0 imagick-3.8.0 \
 && docker-php-ext-enable redis imagick \
 # Cleanup
 && apk del .build-deps \
+&& ln -sf /usr/bin/msmtp /usr/sbin/sendmail \
 && rm -rf /tmp/* /var/cache/apk/*
 
 # Create user with UID 1000 if it doesn't exist
@@ -72,12 +76,16 @@ RUN if ! getent passwd 1000 > /dev/null 2>&1; then \
 # Create directories and set permissions for UID 1000
 RUN mkdir -p /var/www /home/user/.composer
 
-# Install Node.js and Yarn via Alpine packages
-RUN apk add --no-cache nodejs npm \
-    && npm install -g yarn
+# Node 24 LTS (copied from node:24-alpine) and Yarn
+RUN apk add --no-cache libstdc++
+COPY --from=node /usr/local/bin/node /usr/local/bin/
+COPY --from=node /usr/local/lib/node_modules /usr/local/lib/node_modules
+RUN ln -s ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
+    && ln -s ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx \
+    && npm install --unsafe-perm -g yarn
 
 # Install Composer
-ENV COMPOSER_VERSION=2.9.2
+ENV COMPOSER_VERSION=2.10.3
 ENV COMPOSER_HOME=/home/user/.composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer --version=$COMPOSER_VERSION
 
@@ -91,10 +99,14 @@ RUN curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 
+RUN git config --system --add safe.directory /var/www \
+    && git config --system --add safe.directory '*' \
+    && chown -R 1000:1000 /home/user /var/www
+
 WORKDIR /var/www
 
-# Entrypoint
-ENTRYPOINT ["/docker-entrypoint.sh"]
+USER root
+ENV HOME=/home/user
 
-# Keep container running
+ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["tail", "-f", "/dev/null"]

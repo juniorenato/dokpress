@@ -68,6 +68,18 @@ class CopyConfigFiles extends Command
             }
         }
 
+        $objectCacheSource = WD_BASE_PATH . '/public/wp-content/plugins/redis-cache/includes/object-cache.php';
+        $objectCacheTarget = WD_BASE_PATH . '/public/wp-content/object-cache.php';
+        if ($fs->exists($objectCacheSource)) {
+            try {
+                $fs->copy($objectCacheSource, $objectCacheTarget, true);
+                $output->writeln('<info>' . $objectCacheSource . ' copied to ' . $objectCacheTarget . '</info>');
+            } catch (\Throwable $e) {
+                $io->error('Error copying Redis object cache: ' . $e->getMessage());
+                return Command::FAILURE;
+            }
+        }
+
         return Command::SUCCESS;
     }
 }

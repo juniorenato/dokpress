@@ -29,15 +29,17 @@ require_once WD_BASE_PATH .'/app/bootstrap.php';
 
 // Detect HTTPS through reverse proxy (Traefik/Dokploy)
 // Required to avoid ERR_TOO_MANY_REDIRECTS when FORCE_SSL_ADMIN is enabled
-if (1 == 0
-    || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https')
+if (
+    (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https')
     || (isset($_SERVER['HTTP_X_FORWARDED_SSL']) && $_SERVER['HTTP_X_FORWARDED_SSL'] === 'on')
-) { $_SERVER['HTTPS'] = 'on'; }
+) {
+    $_SERVER['HTTPS'] = 'on';
+}
 
 $site_url = Environment::get('APP_URL');
 
-$prod  = Environment::production();
-$debug = Environment::get('WP_DEBUG');
+$production = Environment::production();
+$debug = (bool) Environment::get('WP_DEBUG', false);
 
 // ** Database settings - You can get this info from your web host ** //
 /** The name of the database for WordPress */
@@ -69,14 +71,14 @@ define('DB_COLLATE', Environment::get('DB_COLLATE'));
  *
  * @since 2.6.0
  */
-define('AUTH_KEY',         'default-salts');
-define('SECURE_AUTH_KEY',  'default-salts');
-define('LOGGED_IN_KEY',    'default-salts');
-define('NONCE_KEY',        'default-salts');
-define('AUTH_SALT',        'default-salts');
-define('SECURE_AUTH_SALT', 'default-salts');
-define('LOGGED_IN_SALT',   'default-salts');
-define('NONCE_SALT',       'default-salts');
+define('AUTH_KEY',         Environment::get('AUTH_KEY', 'default-salts'));
+define('SECURE_AUTH_KEY',  Environment::get('SECURE_AUTH_KEY', 'default-salts'));
+define('LOGGED_IN_KEY',    Environment::get('LOGGED_IN_KEY', 'default-salts'));
+define('NONCE_KEY',        Environment::get('NONCE_KEY', 'default-salts'));
+define('AUTH_SALT',        Environment::get('AUTH_SALT', 'default-salts'));
+define('SECURE_AUTH_SALT', Environment::get('SECURE_AUTH_SALT', 'default-salts'));
+define('LOGGED_IN_SALT',   Environment::get('LOGGED_IN_SALT', 'default-salts'));
+define('NONCE_SALT',       Environment::get('NONCE_SALT', 'default-salts'));
 
 /**#@-*/
 
@@ -101,7 +103,7 @@ $table_prefix = Environment::get('DB_TABLE_PREFIX');
  * @link https://wordpress.org/support/article/debugging-in-wordpress/
  * @link https://developer.wordpress.org/advanced-administration/wordpress/wp-config/#wp-debug
  */
-define('WP_DEBUG', true);
+define('WP_DEBUG', $debug);
 
 /* Add any custom values between this line and the "stop editing" line. */
 
@@ -128,19 +130,28 @@ define('WP_DEBUG_LOG', $logfile);
 
 // https://wordpress.org/support/article/debugging-in-wordpress/#wp_debug_display
 // Enabled only when WP_DEBUG is on in non-production environments and WP_DEBUG_LOG is off, otherwise check debug.log file.
-define('WP_DEBUG_DISPLAY', !$prod);
+define('WP_DEBUG_DISPLAY', $debug && !$production);
 
 // https://developer.wordpress.org/advanced-administration/wordpress/wp-config/#wp-disable-fatal-error-handler
-define('WP_DISABLE_FATAL_ERROR_HANDLER', $prod);
+define('WP_DISABLE_FATAL_ERROR_HANDLER', !$production);
 
 // https://developer.wordpress.org/advanced-administration/wordpress/wp-config/#wp-environment-type
-define('WP_ENVIRONMENT_TYPE', Environment::get('APP_ENV'));
+$envType = Environment::get('APP_ENV', 'development');
+if ($envType === 'prod') {
+    $envType = 'production';
+} elseif (in_array($envType, ['dev', 'loc', 'local'], true)) {
+    $envType = 'development';
+}
+define('WP_ENVIRONMENT_TYPE', $envType);
 
 // https://developer.wordpress.org/advanced-administration/wordpress/wp-config/#script-debug
 define('SCRIPT_DEBUG', $debug);
 
 // https://developer.wordpress.org/advanced-administration/wordpress/wp-config/#cache
-define('WP_CACHE', $prod);
+define('WP_CACHE', true);
+define('WP_REDIS_HOST', Environment::get('REDIS_HOST', 'redis'));
+define('WP_REDIS_PORT', Environment::get('REDIS_PORT', '6379'));
+define('WP_REDIS_PREFIX', Environment::get('REDIS_PREFIX', Environment::get('APP_NAME', 'dokpress')));
 
 // https://developer.wordpress.org/advanced-administration/wordpress/wp-config/#disable-cron-and-cron-timeout
 define('DISABLE_WP_CRON', true);
@@ -155,7 +166,7 @@ define('DISALLOW_FILE_MODS', Environment::get('WP_BLOCK_UPDATE'));
 if(!Environment::get('WP_BLOCK_UPDATE')) define('FS_METHOD', 'direct');
 
 // https://developer.wordpress.org/advanced-administration/wordpress/wp-config/#require-ssl-for-admin-and-logins
-define('FORCE_SSL_ADMIN', $prod);
+define('FORCE_SSL_ADMIN', $production);
 
 // https://developer.wordpress.org/advanced-administration/wordpress/wp-config/#block-external-url-requests
 define('WP_HTTP_BLOCK_EXTERNAL', Environment::get('WP_HTTP_BLOCK_EXTERNAL'));

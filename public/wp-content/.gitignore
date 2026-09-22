@@ -4,3 +4,5 @@
 !themes/
 !upgrade/
 !uploads/
+!mu-plugins/
+!mu-plugins/**

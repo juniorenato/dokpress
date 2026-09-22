@@ -1,7 +1,7 @@
 FROM nginx:1.29-alpine
 
 # Install OpenSSL and bash for SSL certificates and entrypoint
-RUN apk add --no-cache openssl bash
+RUN apk add --no-cache openssl bash wget
 
 # Get user/group IDs from build args
 ARG PUID=1000

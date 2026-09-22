@@ -3,18 +3,22 @@
 namespace App\Service;
 
 use Symfony\Component\Cache\Adapter\FilesystemAdapter;
+use Symfony\Component\Cache\Adapter\TagAwareAdapter;
 use Symfony\Contracts\Cache\ItemInterface;
+use Symfony\Contracts\Cache\TagAwareCacheInterface;
 
 class PageCache
 {
-    private $cache;
+    private TagAwareCacheInterface $cache;
 
     public function __construct()
     {
-        $this->cache = new FilesystemAdapter(
-            namespace: 'wp_page_cache',
-            defaultLifetime: 3600,
-            directory: WD_BASE_PATH . '/app/Cache'
+        $this->cache = new TagAwareAdapter(
+            new FilesystemAdapter(
+                namespace: 'wp_page_cache',
+                defaultLifetime: 3600,
+                directory: WD_BASE_PATH . '/app/Cache'
+            )
         );
     }
 

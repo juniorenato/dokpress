@@ -4,21 +4,24 @@ Docker stack for WordPress with Nginx, PHP-FPM, MariaDB and Redis, optimized for
 
 ## Technologies
 
-- **Nginx 1.29.3** - Web server with security configurations
+- **Nginx 1.29** - Web server with security configurations
 - **PHP 8.4-FPM** - With complete WordPress extensions
-- **MariaDB 10.11** - Optimized database
-- **Redis 7** - Object cache
-- **Composer 2.9.2** - PHP dependency manager
+- **MariaDB 11.8** - Optimized database
+- **Redis 7** - Object cache (`redis-cache` plugin)
+- **Composer 2.10.3** - PHP dependency manager
 - **WP-CLI** - WordPress command line interface
-- **Node.js** - For asset building
+- **Node.js 24** - For asset building
+- **msmtp** - Outbound mail from `SMTP_*`
+- **wp-cron** - Runs due WordPress events every 60 seconds
 
 ## Features
 
 ### Performance
-- Redis for object caching
-- Configured OPcache
+- Redis object cache, with `object-cache.php` copied on setup
+- Configured OPcache (`php.ini` in production, `php.dev.ini` for development)
 - MariaDB optimized for WordPress
 - Static file compression and caching
+- `wp-cron` container because `DISABLE_WP_CRON` is on
 
 ### Security
 - Rate limiting against DDoS
@@ -31,12 +34,15 @@ Docker stack for WordPress with Nginx, PHP-FPM, MariaDB and Redis, optimized for
 - Integrated WP-CLI
 - Centralized logs
 - Debug mode configurable via .env
+- CLI container runs `composer install` on start (`CLI_BOOTSTRAP=1`)
+- Optional theme build when `THEME_DIR` is set
+- Adminer and Mailpit behind the Compose profile `dev`
 
 ### Operations
 - Automated installation scripts
-- Database backup and restore
-- Complete health check
-- Docker compose profiles
+- Database backup and restore (`scripts/backup.sh`, `scripts/restore.sh`)
+- Health checks for Nginx, PHP-FPM, MariaDB and Redis
+- SMTP via msmtp, disabled unless `SMTP_ENABLED=true`
 
 ## Quick Setup
 
@@ -55,7 +61,7 @@ nano .env
 ```env
 APP_NAME=mysite
 APP_DOMAIN=mysite.com
-APP_ENVIRONMENT=production  # or development (APP_ENV variable also accepted)
+APP_ENV=production  # or development
 
 MYSQL_DATABASE=mysite
 MYSQL_USER=your_user
@@ -94,9 +100,11 @@ docker compose exec cli composer install
 dokploy/
 |-- .docker/
 |   |-- nginx/              # Nginx configuration
-|   |-- php/                # Dockerfile + php.ini
+|   |-- php/                # Dockerfile, php.ini, php.dev.ini
 |   |-- php-cli/            # CLI Dockerfile for development
-|   |-- mariadb/            # MySQL configuration
+|   |-- mariadb/            # MariaDB configuration
+|   |-- msmtp/              # SMTP config written at container start
+|-- scripts/                # backup.sh and restore.sh
 |-- app/                    # Project PHP code
 |   |-- Command/            # Symfony CLI commands
 |   |-- Config/             # Application configurations
@@ -129,6 +137,18 @@ docker compose exec cli php console dokpress:update-salts
 
 # Deploy WordPress (install core, languages, plugins)
 docker compose exec cli php console dokpress:wordpress-deploy
+
+# Build the theme in THEME_DIR, when that variable is set
+docker compose exec cli php console dokpress:theme-setup
+```
+
+### Backup
+
+Dumps are written to `DB_BACKUP_DIR` from `.env`.
+
+```bash
+./scripts/backup.sh
+./scripts/restore.sh /path/in/DB_BACKUP_DIR/<file>.sql.gz
 ```
 
 ### Docker Compose
@@ -196,13 +216,13 @@ yarn build
 ### Pre-Production Checklist
 
 - [ ] Change all passwords in `.env`
-- [ ] Generate unique salt keys
-- [ ] Set `APP_ENV=production`
-- [ ] Disable debug in wp-config
+- [ ] Run `php console dokpress:update-salts`
+- [ ] Set `APP_ENV=production` and `WP_DEBUG=false`
+- [ ] Set `APP_URL` to HTTPS
 - [ ] Configure HTTPS via Traefik
-- [ ] Enable `FORCE_SSL_ADMIN`
-- [ ] Install security plugin
-- [ ] Configure automatic backups
+- [ ] Leave `COMPOSE_PROFILES` unset (Adminer and Mailpit stay off)
+- [ ] Point `SMTP_*` at the production relay
+- [ ] Configure backups with `scripts/backup.sh`
 
 ## Traefik and HTTPS
 
@@ -217,10 +237,10 @@ Traefik handles:
 ## Monitoring
 
 ### Automatic Health Checks
-- **Nginx:** `/health` endpoint
+- **Nginx:** `GET /health` returns `ok`
 - **Redis:** `redis-cli ping`
-- **MariaDB:** mysqladmin ping
-- **PHP-FPM:** Docker healthcheck
+- **MariaDB:** `healthcheck.sh --connect`
+- **PHP-FPM:** `php-fpm` process check
 
 ### Logs
 ```bash
@@ -232,6 +252,7 @@ docker-compose logs -f nginx
 docker-compose logs -f php-fpm
 docker-compose logs -f mariadb
 docker-compose logs -f redis
+docker-compose logs -f wp-cron
 ```
 
 ## Performance
@@ -248,11 +269,20 @@ docker-compose logs -f redis
 - Max connections: 100
 - Charset: utf8mb4
 
+## Local tools
+
+With `COMPOSE_PROFILES=dev` in `.env`:
+
+- Adminer: http://localhost:8080 (server `mariadb`)
+- Mailpit: http://localhost:8025
+
+For Mailpit, set `SMTP_ENABLED=true`, `SMTP_HOST=mailpit`, `SMTP_PORT=1025`, `SMTP_AUTH=off` and `SMTP_TLS=off`.
+
 ## Development Environment
 
-```bash
-# Use php.dev.ini for development
-# In docker-compose.yml, change:
+`php.ini` keeps OPcache from revalidating files. For local development, mount `php.dev.ini` on `php-fpm` and `cli`:
+
+```yaml
 - ./.docker/php/php.dev.ini:/usr/local/etc/php/conf.d/custom.ini
 ```
 

@@ -9,8 +9,20 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Process\Process;
 
+/**
+ * Installs WordPress when needed and applies the Dokpress baseline.
+ *
+ * The baseline activates maintenance mode, installs Brazilian Portuguese,
+ * flushes rewrite rules, updates the database, shuffles the salts written
+ * in `wp-config.php`, refreshes languages and leaves maintenance mode.
+ */
 class WordpressDeploy extends Command
 {
+    /**
+     * Registers the `dokpress:wordpress-deploy` command.
+     *
+     * @return void
+     */
     protected function configure(): void
     {
         $this
@@ -18,6 +30,17 @@ class WordpressDeploy extends Command
             ->setDescription('Install WordPress core, set language, flush rewrite rules and update database.');
     }
 
+    /**
+     * Installs WordPress if needed, then runs the baseline WP-CLI commands.
+     *
+     * A missing site is installed with `APP_URL`, `APP_NAME` and `WP_ADMIN_*`.
+     * Each WP-CLI process must succeed before the next one starts.
+     *
+     * @param InputInterface  $input  Console input. This command accepts no arguments.
+     * @param OutputInterface $output Console output.
+     *
+     * @return int `Command::SUCCESS` when every WP-CLI command succeeds, otherwise `Command::FAILURE`.
+     */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);

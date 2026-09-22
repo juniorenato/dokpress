@@ -5,12 +5,35 @@ namespace App\Security;
 use App\Service\Environment;
 use Symfony\Component\HttpFoundation\Request;
 
+/**
+ * Hides `wp-login.php` behind the path configured in `WP_LOGIN_URL`.
+ *
+ * When `WP_LOGIN_URL` is empty, the constructor registers no WordPress hooks.
+ * Direct requests to `wp-login.php`, `wp-admin` (anonymous) and `/admin`
+ * end as a 404. Construct this class from a must-use plugin.
+ */
 class SafeLogin
 {
+    /**
+     * Current HTTP request.
+     *
+     * @var Request
+     */
     private $request;
+
+    /**
+     * Login path without a leading slash.
+     */
     private string $safeLogin;
+
+    /**
+     * Request URI, including the query string when present.
+     */
     private string $requestUri;
 
+    /**
+     * Reads `WP_LOGIN_URL` and registers the login hooks when it is set.
+     */
     public function __construct()
     {
         $this->request = Request::createFromGlobals();
@@ -30,12 +53,26 @@ class SafeLogin
         }
     }
 
+    /**
+     * Adds the `dokpress_login` query variable.
+     *
+     * @param array<int, string> $vars Query variables already registered by WordPress.
+     *
+     * @return array<int, string> Query variables, including `dokpress_login`.
+     */
     public function registerQueryVar(array $vars): array
     {
         $vars[] = 'dokpress_login';
         return $vars;
     }
 
+    /**
+     * Maps the safe login path to `dokpress_login` and blocks direct login access.
+     *
+     * Anonymous `GET` requests whose URI contains `wp-login.php` receive a 404.
+     *
+     * @return void
+     */
     public function loginUrl(): void
     {
         add_rewrite_rule(
@@ -52,11 +89,24 @@ class SafeLogin
         }
     }
 
+    /**
+     * Replaces the WordPress login URL with the safe path.
+     *
+     * @return string Home URL joined with the configured login path.
+     */
     public function changeLoginUrl(): string
     {
         return home_url($this->safeLogin);
     }
 
+    /**
+     * Loads `wp-login.php` when the request matches the safe login path.
+     *
+     * The match is either the request path or the `dokpress_login` query variable.
+     * The script exits after WordPress renders the login screen.
+     *
+     * @return void
+     */
     public function loadCustomLogin(): void
     {
         $path = trim((string) parse_url($this->requestUri, PHP_URL_PATH), '/');
@@ -72,6 +122,11 @@ class SafeLogin
         exit;
     }
 
+    /**
+     * Returns 404 when an anonymous request targets `wp-admin`.
+     *
+     * @return void
+     */
     public function adminLoginRedirect(): void
     {
         if (str_contains($this->requestUri, 'wp-admin')
@@ -81,6 +136,11 @@ class SafeLogin
         }
     }
 
+    /**
+     * Returns 404 for requests to `/admin`.
+     *
+     * @return void
+     */
     public function templateRedirect(): void
     {
         if (preg_match('#^/admin/?$#', $this->requestUri)) {
@@ -88,6 +148,11 @@ class SafeLogin
         }
     }
 
+    /**
+     * Ends the request with a WordPress 404 and no cache headers.
+     *
+     * @return never
+     */
     private function set404()
     {
         global $wp_query;

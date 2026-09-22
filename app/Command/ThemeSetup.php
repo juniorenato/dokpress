@@ -9,8 +9,20 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Process\Process;
 
+/**
+ * Installs and builds the theme directory named by `THEME_DIR`.
+ *
+ * Runs `composer install` when the theme has `composer.json`, and
+ * `npm ci` plus `npm run build` when it has `package.json`.
+ * An empty `THEME_DIR` is a successful no-op.
+ */
 class ThemeSetup extends Command
 {
+    /**
+     * Registers the `dokpress:theme-setup` command.
+     *
+     * @return void
+     */
     protected function configure(): void
     {
         $this
@@ -18,6 +30,14 @@ class ThemeSetup extends Command
             ->setDescription('Install and build the theme defined by THEME_DIR');
     }
 
+    /**
+     * Installs theme dependencies and builds front-end assets.
+     *
+     * @param InputInterface  $input  Console input. This command accepts no arguments.
+     * @param OutputInterface $output Console output.
+     *
+     * @return int `Command::SUCCESS` when the theme is skipped or built, otherwise `Command::FAILURE`.
+     */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);

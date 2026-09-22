@@ -2,6 +2,22 @@
 
 declare(strict_types=1);
 
+/**
+ * Writes `/etc/msmtprc` from the `SMTP_*` environment variables.
+ *
+ * Exits without a config file when SMTP is disabled or `SMTP_HOST` is empty.
+ * The generated file and its log are owned by uid/gid 1000. Run this script as root.
+ */
+
+/**
+ * Returns an environment value with `${VAR}` placeholders expanded.
+ *
+ * The result is not trimmed, so a password can keep surrounding spaces.
+ *
+ * @param string $name Environment variable name.
+ *
+ * @return string Expanded value, or an empty string when the variable is unset.
+ */
 function raw(string $name): string
 {
     $value = getenv($name);
@@ -9,11 +25,29 @@ function raw(string $name): string
     return $value === false ? '' : expand($value);
 }
 
+/**
+ * Returns a trimmed environment value with `${VAR}` placeholders expanded.
+ *
+ * @param string $name Environment variable name.
+ *
+ * @return string Trimmed expanded value, or an empty string when unset.
+ */
 function env(string $name): string
 {
     return trim(raw($name));
 }
 
+/**
+ * Replaces `${VAR}` placeholders using the process environment.
+ *
+ * Unset or empty variables are left unchanged. Expansion stops after five
+ * passes so a cycle cannot recurse forever.
+ *
+ * @param string $value Text that may contain placeholders.
+ * @param int    $depth Current expansion pass. Callers should omit this.
+ *
+ * @return string Text after placeholder expansion.
+ */
 function expand(string $value, int $depth = 0): string
 {
     if ($depth > 5 || !str_contains($value, '${')) {
@@ -36,6 +70,16 @@ function expand(string $value, int $depth = 0): string
     return $expanded ?? $value;
 }
 
+/**
+ * Reads an on/off environment flag for msmtp.
+ *
+ * Empty, `off`, `false`, `0` and `no` become `off`.
+ * `on`, `true`, `1` and `yes` become `on`. Any other value stops the script.
+ *
+ * @param string $name Environment variable name.
+ *
+ * @return string `on` or `off`.
+ */
 function flag(string $name): string
 {
     $value = strtolower(env($name));
@@ -52,6 +96,13 @@ function flag(string $name): string
     exit(1);
 }
 
+/**
+ * Quotes a value for an msmtp configuration line.
+ *
+ * @param string $value Raw value.
+ *
+ * @return string Value wrapped in double quotes, with quotes and backslashes escaped.
+ */
 function quote(string $value): string
 {
     return '"' . str_replace(['\\', '"'], ['\\\\', '\\"'], $value) . '"';

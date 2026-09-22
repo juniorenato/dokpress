@@ -23,11 +23,11 @@ class WordpressDeploy extends Command
         $io = new SymfonyStyle($input, $output);
 
         // Check if WordPress is installed
-        $checkInstall = new Process(['wp', 'core', 'is-installed', '--path=public/wp-core']);
+        $checkInstall = new Process(['wp', 'core', 'is-installed', '--path=public/wp-core', '--allow-root']);
         $checkInstall->run();
 
         if (!$checkInstall->isSuccessful()) {
-            $domain = Environment::get('APP_URL', 'http://localhost');
+            $domain = Environment::get('APP_URL', 'https://localhost');
             $name   = Environment::get('APP_NAME', 'WordPress Site');
             $user   = Environment::get('WP_ADMIN_USER', 'admin');
             $pass   = Environment::get('WP_ADMIN_PASSWORD', 'admin123');

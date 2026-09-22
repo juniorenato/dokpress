@@ -2,9 +2,11 @@
 
 use Symfony\Component\Console\Application;
 
-require __DIR__ . '/vendor/autoload.php';
+if (!defined('WD_BASE_PATH')) {
+    define('WD_BASE_PATH', __DIR__);
+}
 
-if(!defined('WD_BASE_PATH')) define('WD_BASE_PATH', __DIR__);
+require __DIR__ . '/app/bootstrap.php';
 
 $application = new Application();
 

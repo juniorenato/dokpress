@@ -19,6 +19,7 @@ fi
 # Verificar se existe um template de site.conf
 if [ -f /etc/nginx/templates/site.conf.template ]; then
     echo "Processando template site.conf.template com variáveis de ambiente"
+    rm -f /etc/nginx/conf.d/default.conf
     envsubst '${APP_DOMAIN}' < /etc/nginx/templates/site.conf.template > /etc/nginx/conf.d/site.conf
     echo "Template processado com sucesso"
 elif [ -f /etc/nginx/conf.d/site.conf ]; then

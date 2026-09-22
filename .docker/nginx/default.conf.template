@@ -192,6 +192,12 @@ server {
         log_not_found off;
     }
 
+    location = /health {
+        access_log off;
+        default_type text/plain;
+        return 200 "ok\n";
+    }
+
     # WordPress permalinks
     location / {
         limit_req zone=general burst=100 nodelay;
